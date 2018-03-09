@@ -1,0 +1,109 @@
+---
+title: "word2vec model trained on google news dataset"
+subtitle: 'Determining the most similar words for proper nouns (MSBA classmate names)'
+author: "Shubhankar Tiwari"
+date: "`r Sys.Date()`"
+abstract: |
+  It is very hard for any machine learning algorithm to develop connections between proper nouns - Names, Places, Things. Most text processing techniques (like LDA) can group words like love, affection, care into a cluster/ topic with high probability because they observe them occuring frequently in even a small corpus  (like a novel). This is however very hard to do for nouns like names of people. Deep learning comes to the rescue. Google has trained a word2vec model on the massive google news dataset and has opened it for general use and experimentation. I used the model to analyse if it could establish any relations between the names of my classmates. I only used their first names to ensure privacy. The results are fantastic! 
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Loading Libraries
+
+```{r}
+library(knitr)
+opts_chunk$set(echo=TRUE,cache=TRUE)
+
+suppressPackageStartupMessages({
+  library(readxl) #reading excel files
+  library(dplyr) 
+  library(visNetwork) #creating visual network
+
+})
+
+```
+
+
+## Loading files
+
+```{r}
+nodes = read_excel('D:/Google Drive/Spring 2018/Courses/LSTM/word2vec/fuzzyRaw.xlsx',
+                   sheet = "nodes",col_names = TRUE)
+edges = read_excel('D:/Google Drive/Spring 2018/Courses/LSTM/word2vec/fuzzyRaw.xlsx',
+                   sheet = "edges",col_names = TRUE)
+```
+
+## Network Graph
+
+```{r}
+edges$arrows = "to"
+
+edges$color = ifelse(edges$group=="India",'#009688',
+                       ifelse(edges$group=="Murica","#3F51B5",
+                              ifelse(edges$group=="China","#9C27B0","#FFC107")))
+
+
+nodes$title <- nodes$id
+nodes$label <- nodes$id
+
+visNetwork(nodes,edges, main = 'Connections between MSBA students',
+           width = "1000px",height = "800px") %>%
+  visLayout(randomSeed = 40) %>%
+  visOptions(highlightNearest = list(enabled = TRUE, hover = TRUE),
+             selectedBy = "group",nodesIdSelection = TRUE) %>%
+  visGroups(groupname=as.vector("India"),shape="icon",
+            icon=list(code="f111",color="#009688"))%>%
+  visGroups(groupname=as.vector("Murica"),shape="icon",
+            icon=list(code="f0c8",color="#3F51B5"))%>%
+  visGroups(groupname=as.vector("China"),shape="icon",
+            icon=list(code="f192",color="#9C27B0"))%>%
+  addFontAwesome() %>%
+  visLegend(width = 0.05) %>%
+  visIgraphLayout(layout = "layout_on_sphere") %>%
+  visNodes(size = 5)
+```
+
+
+
+
+## Insights
+
+1. The model is clearly able to separate names based on nationality. We observe that there are no connections between people of different nationalities^[However American citizens with Indian origin have been classified as being related to Indian names]
+
+2. Common names like `Gaurav` and `Saurabh` have a lot of connections
+
+3. The model is also able to make a distinction in terms of gender for all the nationalities. Albeit names like Saumya (used by both genders) are ambiguous and the model cannot make any distinction.
+
+4. Overall it's very easy for a human to connect `Cory` with `Kyle` and `Nikhil` with `Mayank` but it's very hard to train an algorithm to recognize this specially since such a training data set is hard to come by
+
+
+The `edges` table has no connections b/w students of a different nationality. All the data has been preprocessed^[The python script is in my github repo] in python and excel before importing into R
+
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(head(edges, 10))
+```
+
+## Stay Tuned
+
+Please visit my [github page](http://shubhstiws.github.io) for more such analysis. Comments, bug reports and
+pull requests are always welcome.
+
+## References
+
+1. [Data](https://carlsonschool.umn.edu/degrees/master-science-in-business-analytics): Carlson School of Management, University of Minnesota, MS in Business Analytics, class of 2018
+
+2. [Visual Network documentation](https://www.htmlwidgets.org/)
+
+3. Google's pre trained word2vec [model](https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit). It's 1.5 GB
+
+4. Word2vec [tutorial](http://mccormickml.com/2016/04/19/word2vec-tutorial-the-skip-gram-model/) by Chris McCormick
+
+5. [Python notebook]() - preprocessing the data
